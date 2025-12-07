@@ -1,4 +1,4 @@
-.PHONY: setup test run ui clean
+.PHONY: setup test run ui clean version version-patch version-minor version-major
 
 PYTHON := python3
 
@@ -40,3 +40,19 @@ clean:
 	rm -rf src/*/__pycache__
 	rm -f data/*.db
 	rm -f data/bronze/*.json
+
+version:
+	@echo "Current version:"
+	@$(PYTHON) -c "from src.__version__ import __version__; print(__version__)"
+
+version-patch:
+	@echo "Bumping patch version..."
+	$(PYTHON) scripts/bump_version.py patch
+
+version-minor:
+	@echo "Bumping minor version..."
+	$(PYTHON) scripts/bump_version.py minor
+
+version-major:
+	@echo "Bumping major version..."
+	$(PYTHON) scripts/bump_version.py major

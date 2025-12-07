@@ -448,4 +448,5 @@ with tabs[5]:
 
 # Footer
 st.divider()
-st.caption("Smart Data Pipeline v1.0 | Tier 2: Autonomy Kernel")
+from src.__version__ import __version__
+st.caption(f"Smart Data Pipeline v{__version__} | Tier 2: Autonomy Kernel")
