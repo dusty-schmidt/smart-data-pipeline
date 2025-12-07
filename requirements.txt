@@ -8,3 +8,5 @@ pandas
 mcp
 ollama
 python-dotenv
+fastapi
+uvicorn[standard]

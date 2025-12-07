@@ -71,7 +71,10 @@ class TaskQueue:
     
     def __init__(self, db_path: str = "data/pipeline.db"):
         self.db_path = db_path
-        self.engine = create_engine(f"sqlite:///{db_path}")
+        self.engine = create_engine(
+            f"sqlite:///{db_path}", 
+            connect_args={"check_same_thread": False}
+        )
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
     

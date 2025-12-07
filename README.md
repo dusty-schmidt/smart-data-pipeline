@@ -147,6 +147,31 @@ Sources:
   ✅ jsonplaceholder_todos    (failures: 0, last: 2025-12-07 04:15)
 ```
 
+
+---
+
+## 🔌 API Usage
+
+The system exposes a REST API for integration.
+
+```bash
+# Start the server (Local)
+python run_server.py
+
+# Start via Docker (Recommended for immutable OS)
+docker-compose up --build
+```
+
+Access the interactive documentation at:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+**Key Endpoints**:
+- `POST /sources`: Add a new source
+- `GET /sources`: List all sources
+- `POST /sources/{name}/fix`: Trigger a fix
+- `GET /tasks`: View task queue status
+
 ---
 
 ## 🔧 Configuration
@@ -184,6 +209,7 @@ python -m pytest tests/test_end_to_end_agents.py -v
 ├── scripts/                # Setup scripts
 ├── src/
 │   ├── agents/             # AI Agents (base, scout, builder)
+│   ├── api/                # FastAPI Application (Routes, Models)
 │   ├── core/               # Infrastructure (config, llm, mcp, plugins)
 │   ├── ingestion/          # BaseFetcher template
 │   ├── orchestration/      # Tier 2: Doctor, TaskQueue, Health, Orchestrator

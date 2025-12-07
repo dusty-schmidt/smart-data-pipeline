@@ -9,7 +9,7 @@ services:
       - ./config:/app/config # Persist Configs
       - ./src:/app/src # Hot-reload code (optional for dev)
     ports:
-      - "8501:8501"
+      - "8000:8000"
     environment:
       - ENV=production
     restart: unless-stopped

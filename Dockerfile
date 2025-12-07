@@ -20,8 +20,8 @@ COPY . .
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Expose UI Port
-EXPOSE 8501
+# Expose API Port
+EXPOSE 8000
 
-# Default Command (Run UI)
-CMD ["streamlit", "run", "src/ui/app.py", "--server.address=0.0.0.0"]
+# Default Command (Run API)
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
