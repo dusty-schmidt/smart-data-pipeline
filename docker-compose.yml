@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  pipeline:
+    build: .
+    container_name: smart-pipeline
+    volumes:
+      - ./data:/app/data # Persist DB
+      - ./config:/app/config # Persist Configs
+      - ./src:/app/src # Hot-reload code (optional for dev)
+    ports:
+      - "8501:8501"
+    environment:
+      - ENV=production
+    restart: unless-stopped

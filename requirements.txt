@@ -1,0 +1,10 @@
+httpx
+pydantic
+loguru
+tenacity
+sqlalchemy
+streamlit
+pandas
+mcp
+ollama
+python-dotenv
