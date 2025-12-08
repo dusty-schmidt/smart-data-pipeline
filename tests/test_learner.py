@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 import json
-from src.orchestration.doctor import DoctorAgent, DiagnosisContext, Diagnosis, Lesson
+from src.agents.doctor import DoctorAgent, DiagnosisContext, Diagnosis, Lesson
 
 class TestLearner(unittest.TestCase):
     def setUp(self):

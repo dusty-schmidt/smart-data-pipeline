@@ -5,11 +5,11 @@ from unittest.mock import MagicMock, patch
 import json
 from loguru import logger
 from src.utils.logger import logger as custom_logger # Test our logger
-from src.orchestration.doctor import DoctorAgent, DiagnosisContext, Diagnosis
+from src.agents.doctor import DoctorAgent, DiagnosisContext, Diagnosis
 from src.orchestration.health import HealthTracker, SourceState
 
 # Setup reliable demo environment
-def demo_doctor_is_in():
+def test_demo_doctor_is_in():
     print("\n🩺 THE DOCTOR IS IN: System Capabilities Demo 🩺\n")
     print("="*60)
     
@@ -121,4 +121,4 @@ class BrokenScraperV1:
     print("🏁 DEMO COMPLETE")
 
 if __name__ == "__main__":
-    demo_doctor_is_in()
+    test_demo_doctor_is_in()

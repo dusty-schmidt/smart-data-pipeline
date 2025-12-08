@@ -103,11 +103,11 @@ This enables debugging, reprocessing, and schema evolution without data loss.
 - Specialized AI workers that analyze, build, and repair data sources.
 - **Scout**: Uses Firecrawl/LLM to understand pages.
 - **Builder**: Writes Python code from Blueprints.
+- **Doctor**: Diagnoses failures, patches broken scrapers, and learns from success.
 
 **Orchestration** (`src/orchestration/`)
 - **Task Queue**: Persistent SQLite-backed job management.
 - **Health Tracker**: Monitors success/failure rates.
-- **Doctor**: The self-healing engine with "The Learner" module.
 
 **Storage** (`src/storage/`)
 - **Bronze/Silver**: ELT data layers.

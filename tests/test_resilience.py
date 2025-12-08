@@ -12,10 +12,10 @@ def mock_response(status_code=200, json_data=None):
     resp.json.return_value = json_data or {}
     return resp
 
-def test_openai_retry_success():
-    """Test that OpenAI chat retries on connection error and eventually succeeds."""
+def test_llm_retry_success():
+    """Test that LLM chat retries on connection error and eventually succeeds."""
     client = LLMClient()
-    client.provider = "openai"
+    client.provider = "openai"  # mocking the http path, which is used for openai-compatible
     client.api_key = "fake-key"
     client.base_url = "https://api.openai.com/v1"
     
@@ -32,8 +32,8 @@ def test_openai_retry_success():
         assert result == "Success"
         assert mock_post.call_count == 3
 
-def test_openai_retry_fail():
-    """Test that OpenAI chat gives up after max retries."""
+def test_llm_retry_fail():
+    """Test that LLM chat gives up after max retries."""
     client = LLMClient()
     client.provider = "openai"
     client.api_key = "fake-key"
@@ -42,7 +42,8 @@ def test_openai_retry_fail():
     with patch("httpx.post") as mock_post:
         mock_post.side_effect = httpx.ConnectError("Fail forever")
         
-        with pytest.raises(RetryError):
+        # When reraise=True, tenacity raises the underlying exception, not RetryError
+        with pytest.raises(httpx.ConnectError):
             client._openai_chat([{"role": "user", "content": "hi"}])
             
         # Should match max retries in code (5)
@@ -51,13 +52,13 @@ def test_openai_retry_fail():
 if __name__ == "__main__":
     # DIY runner if pytest not available/convenient
     try:
-        test_openai_retry_success()
-        print("✅ test_openai_retry_success passed")
+        test_llm_retry_success()
+        print("✅ test_llm_retry_success passed")
     except Exception as e:
-        print(f"❌ test_openai_retry_success failed: {e}")
+        print(f"❌ test_llm_retry_success failed: {e}")
         
     try:
-        test_openai_retry_fail()
-        print("✅ test_openai_retry_fail passed")
+        test_llm_retry_fail()
+        print("✅ test_llm_retry_fail passed")
     except Exception as e:
-        print(f"❌ test_openai_retry_fail failed: {e}")
+        print(f"❌ test_llm_retry_fail failed: {e}")

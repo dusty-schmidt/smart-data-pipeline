@@ -13,7 +13,7 @@ from loguru import logger
 
 from src.orchestration.task_queue import TaskQueue, TaskType, TaskState, Task
 from src.orchestration.health import HealthTracker, SourceState
-from src.orchestration.doctor import DoctorAgent
+from src.agents.doctor import DoctorAgent
 from src.agents.scout import ScoutAgent
 from src.agents.builder import BuilderAgent
 from src.core.plugins import PluginRegistry

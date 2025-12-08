@@ -40,7 +40,7 @@ class BrokenSite:
         
         # 3. Initialize Orchestrator with temp paths
         # We need to monkey-patch the Doctor's registry path since it's hardcoded in __init__ usually
-        with patch("src.orchestration.doctor.DoctorAgent.__init__", autospec=True) as mock_init:
+        with patch("src.agents.doctor.DoctorAgent.__init__", autospec=True) as mock_init:
             # We want the real init logic, but to override paths after
             def side_effect(self, db_path):
                 # Call base class logic manually or just setup what we need
