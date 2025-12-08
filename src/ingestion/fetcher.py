@@ -16,7 +16,7 @@ class BaseFetcher:
         "Accept-Language": "en-US,en;q=0.9",
     }
 
-    def __init__(self, url: str, timeout: int = 10, headers: Optional[Dict[str, str]] = None):
+    def __init__(self, url: Optional[str] = None, timeout: int = 10, headers: Optional[Dict[str, str]] = None):
         self.url = url
         self.timeout = timeout
         self.headers = {**self.DEFAULT_HEADERS, **(headers or {})}

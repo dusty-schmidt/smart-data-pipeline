@@ -4,6 +4,8 @@ Orchestrator - Main coordination loop for Tier 2 Autonomy
 Processes task queue, coordinates agents, and manages the pipeline lifecycle.
 """
 import time
+import sys
+import inspect
 from typing import Optional
 from datetime import datetime
 
@@ -15,6 +17,8 @@ from src.orchestration.doctor import DoctorAgent
 from src.agents.scout import ScoutAgent
 from src.agents.builder import BuilderAgent
 from src.core.plugins import PluginRegistry
+from src.storage.bronze import BronzeStorage
+from src.storage.silver import SilverStorage
 
 
 class Orchestrator:
@@ -38,6 +42,11 @@ class Orchestrator:
         self.scout = ScoutAgent()
         self.builder = BuilderAgent()
         self.plugin_registry = PluginRegistry()
+        
+        # Storage classes expect a full SQLAlchemy URL
+        db_url = f"sqlite:///{db_path}"
+        self.bronze = BronzeStorage(db_url)
+        self.silver = SilverStorage(db_url)
         
         # Configuration
         self.poll_interval_seconds = 5
@@ -150,6 +159,10 @@ class Orchestrator:
         # Success!
         self.task_queue.update_state(task.task_id, TaskState.COMPLETED)
         logger.success(f"[Orchestrator] Source deployed: {blueprint.source_name}")
+        
+        # Trigger immediate refresh
+        self.refresh_source(blueprint.source_name, priority=10)
+        
         return True
     
     def _handle_fix_source(self, task: Task) -> bool:
@@ -189,21 +202,84 @@ class Orchestrator:
         # Find the parser in the registry
         self.plugin_registry.discover_parsers()
         
-        # Look for a matching parser class
-        parser_name = f"{source_name.title().replace('_', '')}Parser"
+        # Look for a matching parser class (case-insensitive)
+        # Iterate over all registered parsers to find a match
+        ParserClass = None
+        target_name = f"{source_name}Parser".lower().replace("_", "").replace(" ", "")
+        
+        for name, cls in self.plugin_registry.parsers.items():
+            current_name = name.lower().replace("_", "")
+            if current_name == target_name:
+                ParserClass = cls
+                break
         
         try:
-            parser = self.plugin_registry.get_parser(parser_name)
-        except ValueError:
-            logger.error(f"[Orchestrator] Parser not found: {parser_name}")
-            self.task_queue.update_state(task.task_id, TaskState.FAILED, f"Parser not found: {parser_name}")
+            if not ParserClass:
+                logger.error(f"[Orchestrator] Parser class {parser_name} not found")
+                self.task_queue.update_state(task.task_id, TaskState.FAILED, f"Parser class {parser_name} not found")
+                return False
+
+            # 1. Instantiate Plugin
+            # We assume the plugin has a Fetcher class named {source}Fetcher
+            # But the current PluginRegistry mainly handles Parsers.
+            # To simplify, we will let the Parser/Plugin file handle fetching too if possible,
+            # OR we standardize that the file contains both.
+            # 
+            # Given the current `src/registry/en_wikipedia_org.py`, it has `en_wikipedia_orgFetcher` and `en_wikipedia_orgParser`.
+            # We need to reflectively find the Fetcher class too.
+            
+            # Re-import the module to get the Fetcher
+            module = sys.modules[ParserClass.__module__]
+            
+            # Find fetcher class in the module (case-insensitive match)
+            FetcherClass = None
+            target_fetcher = f"{source_name}Fetcher".lower().replace("_", "")
+            
+            for name, obj in inspect.getmembers(module):
+                if inspect.isclass(obj) and name.lower().replace("_", "") == target_fetcher:
+                    FetcherClass = obj
+                    break
+            
+            if not FetcherClass:
+                 # Fallback: Maybe the module IS the fetcher/parser combo?
+                 # For now, let's error if strictly missing.
+                 logger.error(f"[Orchestrator] Fetcher class {fetcher_class_name} not found in {module}")
+                 self.task_queue.update_state(task.task_id, TaskState.FAILED, "Fetcher not found")
+                 return False
+
+            fetcher = FetcherClass()
+            parser = ParserClass()
+            
+            # 2. Fetch Data
+            logger.info(f"[Orchestrator] Fetching data for {source_name}...")
+            raw_data = fetcher.fetch()
+            
+            # 3. Store in Bronze
+            bronze_id = self.bronze.save(raw_data, source_name)
+            
+            # 4. Parse
+            logger.info(f"[Orchestrator] Parsing data (Bronze ID: {bronze_id})...")
+            # Enriched data for parser if needed, but usually parser takes what fetcher returns
+            parsing_results = parser.parse(raw_data)
+            logger.info(f"[Orchestrator] Extracted {len(parsing_results)} entities")
+            
+            # 5. Store in Silver
+            count = 0
+            for item in parsing_results:
+                self.silver.upsert_entity(item.to_dict())
+                count += 1
+                
+            logger.success(f"[Orchestrator] Upserted {count} entities to Silver")
+            
+            # 6. Success
+            self.task_queue.update_state(task.task_id, TaskState.COMPLETED)
+            self.health_tracker.record_success(source_name)
+            return True
+
+        except Exception as e:
+            logger.exception(f"[Orchestrator] Refresh failed: {e}")
+            self.task_queue.update_state(task.task_id, TaskState.FAILED, str(e))
             return False
-        
-        # TODO: Execute the fetcher and parser, store in Bronze
-        # For now, just mark as completed
-        logger.warning(f"[Orchestrator] REFRESH_SOURCE not fully implemented yet")
-        self.task_queue.update_state(task.task_id, TaskState.COMPLETED)
-        return True
     
     def check_health_and_queue_fixes(self) -> int:
         """

@@ -33,7 +33,7 @@ def test_status():
 def test_add_source():
     # Attempt to add a dummy source
     source_payload = {
-        "url": "https://example.com/test-data",
+        "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
         "priority": 10
     }
     response = client.post("/sources", json=source_payload)
@@ -48,7 +48,7 @@ def test_add_source():
     assert len(tasks) > 0
     found = False
     for t in tasks:
-        if t["target"] == "https://example.com/test-data":
+        if t["target"] == "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies":
             found = True
             break
     assert found

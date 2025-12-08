@@ -17,17 +17,22 @@ class ScoutAgent(BaseAgent):
         super().__init__()
         self.headers = {"User-Agent": user_agent}
 
-    def analyze(self, source_name: str, url: str, discover_mode: bool = False) -> DataBlueprint:
+    def analyze(self, url: str, source_name: Optional[str] = None, discover_mode: bool = False) -> DataBlueprint:
         """
         Analyzes the page and attempts to auto-detect data structures.
-        Tries Firecrawl MCP first, then falls back to basic HTTP fetching.
         
         Args:
-            source_name: Name for this data source
             url: URL to analyze
+            source_name: Optional name. If None, derived from domain.
             discover_mode: If True, uses firecrawl_map to discover related URLs first
         """
-        logger.info(f"Scout is analyzing {url}...")
+        if not source_name:
+            # Auto-derive from URL (e.g. https://example.com/foo -> example_com)
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc
+            source_name = domain.replace(".", "_").replace("-", "_")
+            
+        logger.info(f"Scout is analyzing {url} (source: {source_name})...")
         
         content = None
         discovered_urls = []

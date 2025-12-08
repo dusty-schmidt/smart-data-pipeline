@@ -31,8 +31,10 @@ class LLMClient:
         else:
             self.api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
         
-        if not self.api_key:
+        if not self.api_key and not self.use_ollama:
             logger.warning(f"No API key found for provider '{self.provider}'. LLM features will fail if called.")
+        elif self.use_ollama and not self.api_key:
+             logger.info(f"LLM Client initialized: provider={self.provider} (No API Key required for local Ollama), model={self.model}")
         else:
             logger.info(f"LLM Client initialized: provider={self.provider}, model={self.model}")
 
@@ -41,7 +43,7 @@ class LLMClient:
         Sends a chat completion request to the LLM.
         Routes to Ollama or OpenAI-compatible API based on configuration.
         """
-        if not self.api_key:
+        if not self.api_key and not self.use_ollama:
             raise ValueError(f"API key not set for provider '{self.provider}'.")
 
         if self.use_ollama:

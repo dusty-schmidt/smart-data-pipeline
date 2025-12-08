@@ -1,82 +1,38 @@
-# Smart Data Pipeline (Self-Building)
+# Smart Data Pipeline
 
-> **Status**: MVP Complete (Tier 2: Autonomy)
-> **Core Feature**: The system writes *and repairs* its own ingestion code.
+> **An Adaptive Data Ingestion Engine that writes and repairs its own code**
 
 ## 🌟 The Vision
 
-This is not just a data pipeline; it is an **Adaptive Ingestion Engine**.
-Traditional pipelines are brittle: if a website changes its structure, the scraper breaks, and a human must fix it.
+Traditional data pipelines are brittle. When a website changes its structure, the scraper breaks, and a human must intervene. This creates a maintenance burden that scales linearly with the number of data sources.
 
-This project solves that by employing **AI Agents** that act as the maintenance crew:
-*   **The Scout**: Looks at a website and understands the data structure.
-*   **The Builder**: Writes the Python code to fetch that data.
-*   **The Doctor**: Diagnoses failures and patches broken scrapers automatically.
-*   **The Orchestrator**: Coordinates everything and manages the task queue.
+**This project inverts that paradigm.**
 
----
+Instead of humans maintaining scrapers, **AI agents maintain themselves**. The system employs a crew of specialized agents:
 
-## 🚀 Quick Start
+- **The Scout** — Analyzes web pages and understands data structures
+- **The Builder** — Generates Python code to extract that data  
+- **The Doctor** — Diagnoses failures and patches broken scrapers
+- **The Orchestrator** — Coordinates the workflow and manages the task queue
 
-### Prerequisites
-*   Python 3.10+
-*   An LLM API Key (Ollama Cloud recommended)
-
-### 1. Install & Configure
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file with your API keys
-cat > .env << EOF
-OLLAMA_API_KEY=your-ollama-key
-FIRECRAWL_API_KEY=your-firecrawl-key
-EOF
-```
-
-### 2. Use the CLI
-
-```bash
-# Add a new data source
-python -m src add "https://example.com/data"
-
-# Check pipeline status
-python -m src status
-
-# View task queue
-python -m src tasks
-
-# Force repair of a broken source
-python -m src fix my_source
-
-# Run the orchestrator loop
-python -m src run
-```
-
-### 3. Run the Dashboard (Optional)
-```bash
-make ui
-```
-*Access at: http://localhost:8501*
+The result is a **self-sustaining data ecosystem** where adding a new data source is as simple as providing a URL. The system handles discovery, code generation, deployment, monitoring, and repair—all autonomously.
 
 ---
 
-## 🛠 Tech Stack
+## 🚀 Getting Started
 
-| Component | Technology |
-|-----------|------------|
-| **Language** | Python 3.10+ |
-| **LLM** | Ollama Cloud (default) or OpenAI |
-| **Database** | SQLite (via SQLAlchemy) |
-| **Web Scraping** | Firecrawl MCP |
-| **Interface** | CLI + Streamlit |
+**Prerequisites:** Python 3.10+, LLM API key (Ollama/OpenAI), Firecrawl API key
+
+**Setup:** Install dependencies with `pip install -r requirements.txt` and configure API keys in `.env`
+
+**Usage:** Add sources with `python -m src add <url>`, check status with `python -m src status`, and run the orchestrator with `python -m src run`
 
 ---
 
-## 🏗 Architecture
+## 🎯 Design Philosophy
 
-### Kernel Tiers
+### 1. **Kernel Isolation**
+The system is organized into independent tiers. Each tier can function without the layers above it, ensuring graceful degradation:
 
 ```
 Tier 0: Storage (Bronze/Silver)        ✅ Complete
@@ -86,7 +42,8 @@ Tier 3: Intelligence (Learning)        📋 Future
 Tier 4: Ecosystem (Multi-domain)       📋 Future
 ```
 
-### The Self-Healing Loop
+### 2. **The Self-Healing Loop**
+The system continuously monitors itself and adapts to change:
 
 ```mermaid
 graph LR
@@ -94,214 +51,125 @@ graph LR
     Queue --> Scout[Scout Agent]
     Scout -->|Analyzes HTML| Blueprint[Data Blueprint]
     Blueprint --> Builder[Builder Agent]
-    Builder -->|Writes Code| Registry[src/registry/*.py]
-    Registry --> Runtime[Plugin Registry]
-    Runtime -->|Execute| DB[(Database)]
-    
-    DB -.->|Failure| Health[Health Tracker]
+    Builder -->|Writes Code| Registry[Plugin Registry]
+    Registry --> Runtime[Execute]
+    Runtime -->|Failure| Health[Health Tracker]
     Health -->|3 Strikes| Doctor[Doctor Agent]
-    Doctor -->|Diagnoses| LLM[Ollama LLM]
-    LLM -->|Generates Patch| Staging[Staging Registry]
+    Doctor -->|Diagnoses & Patches| Staging[Staging]
     Staging -->|Validated| Registry
 ```
 
----
+When a scraper fails, the Doctor agent:
+1. Collects diagnostic context (error logs, HTML diffs, current code)
+2. Uses an LLM to generate a patch
+3. Deploys the fix to a staging environment
+4. Validates the patch before promoting to production
 
-## 🚀 CLI Reference
+### 3. **Circuit Breakers & Safeguards**
+To prevent infinite loops and runaway costs:
+- **3-strike quarantine**: Sources that fail repeatedly are quarantined
+- **Max 3 fix attempts per day**: Prevents the Doctor from burning through API credits
+- **Staging validation**: All patches are tested before production deployment
+- **Persistent state**: The system survives restarts and resumes work
 
-| Command | Description |
-|---------|-------------|
-| `python -m src add <url>` | Queue a new source for discovery |
-| `python -m src add <url> --now` | Add and process immediately |
-| `python -m src status` | Show health of all sources |
-| `python -m src tasks` | View task queue |
-| `python -m src fix <source>` | Force repair of a source |
-| `python -m src run` | Start orchestrator loop |
-| `python -m src run --once` | Process one task and exit |
+### 4. **Data Lineage & Traceability**
+Data flows through a two-layer architecture:
+- **Bronze Layer**: Raw data exactly as fetched, with full metadata
+- **Silver Layer**: Normalized, validated entities ready for consumption
 
-### Example Session
+This enables debugging, reprocessing, and schema evolution without data loss.
 
-```bash
-$ python -m src add "https://jsonplaceholder.typicode.com/todos" --now
-✅ Task queued: [1] ADD_SOURCE → https://jsonplaceholder.typicode.com/todos
-🚀 Processing immediately...
-[Orchestrator] Scout analyzing...
-[Orchestrator] Blueprint created: jsonplaceholder_todos
-[Orchestrator] Builder constructing...
-[Orchestrator] Plugin created: src/registry/jsonplaceholder_todos.py
-✅ Source deployed: jsonplaceholder_todos
+### 5. **80/20 Rule**
+Focus on high-value automation first. The current MVP achieves:
+- ✅ Zero-touch source addition (URL → working scraper)
+- ✅ Persistent operation (survives restarts)
+- ✅ Self-healing (automatic repair of broken scrapers)
+- ✅ Observable (CLI + web dashboard)
 
-$ python -m src status
-📊 Pipeline Status
-==================================================
-Pending Tasks: 0
-Total Sources: 1
-
-Health Summary:
-  ✅ Active:      1
-  ⚠️  Degraded:    0
-  🔒 Quarantined: 0
-  💀 Dead:        0
-
-Sources:
-  ✅ jsonplaceholder_todos    (failures: 0, last: 2025-12-07 04:15)
-```
-
+Advanced features like learning from past fixes and multi-domain federation are deferred to future tiers.
 
 ---
 
-## 🔌 API Usage
+## 🏗 Architecture Overview
 
-The system exposes a REST API for integration.
+### Core Components
 
-```bash
-# Start the server (Local)
-python run_server.py
+**Agents** (`src/agents/`)
+- Specialized AI workers that analyze, build, and repair data sources
+- Share common LLM and MCP (Model Context Protocol) patterns
+- Generate executable Python code dynamically
 
-# Start via Docker (Recommended for immutable OS)
-docker-compose up --build
-```
+**Orchestration** (`src/orchestration/`)
+- Task queue with persistent SQLite storage
+- Health tracking with quarantine logic
+- Doctor agent for self-healing
+- Main orchestrator loop coordinating all workflows
 
-Access the interactive documentation at:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+**Storage** (`src/storage/`)
+- Bronze/Silver data layers with ELT pattern
+- Metadata tracking for lineage and debugging
+- Orchestration tables (task queue, health, fix history)
 
-**Key Endpoints**:
-- `POST /sources`: Add a new source
-- `GET /sources`: List all sources
-- `POST /sources/{name}/fix`: Trigger a fix
-- `GET /tasks`: View task queue status
+**Plugin Registry** (`src/registry/`)
+- Hot-loadable Python modules generated by the Builder
+- Staging area for validating patches before production
+- Dynamic import system for zero-downtime updates
 
----
+### Interfaces
 
-## 🔧 Configuration
+**CLI** (`python -m src`)
+- Add sources, check status, view tasks, force repairs
+- Run the orchestrator in continuous or single-task mode
 
-All settings are centralized in `src/core/config.py`:
+**Web Dashboard** (Streamlit)
+- Real-time health monitoring
+- Task queue visualization
+- Fix history and audit logs
 
-| Setting | Default | Environment Variable |
-|---------|---------|---------------------|
-| LLM Provider | `ollama` | `LLM_PROVIDER` |
-| LLM Model | `gpt-oss:120b` | `LLM_MODEL` |
-| LLM Timeout | `120s` | `LLM_TIMEOUT` |
-| Database Path | `data/pipeline.db` | `PIPELINE_DB_PATH` |
-| Max Fix Attempts | `3` per day | `MAX_FIX_ATTEMPTS` |
-| Quarantine Threshold | `3` failures | `QUARANTINE_THRESHOLD` |
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-python -m pytest tests/ -v
-
-# Run specific test
-python -m pytest tests/test_end_to_end_agents.py -v
-
-# Run API tests
-python -m pytest tests/test_api.py -v
-```
-
----
-
-## 📂 Project Structure
-
-```text
-.
-├── config/                 # MCP configurations
-├── scripts/                # Setup scripts
-├── src/
-│   ├── agents/             # AI Agents (base, scout, builder)
-│   ├── api/                # FastAPI Application (Routes, Models)
-│   ├── core/               # Infrastructure (config, llm, mcp, plugins)
-│   ├── ingestion/          # BaseFetcher template
-│   ├── orchestration/      # Tier 2: Doctor, TaskQueue, Health, Orchestrator
-│   │   ├── doctor.py       # Self-healing agent
-│   │   ├── health.py       # Source health tracking
-│   │   ├── orchestrator.py # Main coordination loop
-│   │   └── task_queue.py   # Persistent task management
-│   ├── processing/         # BaseParser contracts
-│   ├── registry/           # Dynamic plugins (AI writes here)
-│   │   └── staging/        # Patches validated here before production
-│   ├── storage/            # Bronze/Silver persistence + orchestration tables
-│   └── ui/                 # Streamlit dashboard
-├── tests/                  # Verification scripts
-├── __main__.py             # CLI entry point
-├── VISION.md               # Architecture & roadmap
-└── README.md
-```
-
----
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-*   **`LLM_API_KEY` not set**:
-    *   *Symptom*: "No API key found for provider"
-    *   *Fix*: Set `OLLAMA_API_KEY` in `.env`
-
-*   **Source stuck in QUARANTINED**:
-    *   *Symptom*: Source not being processed
-    *   *Fix*: Wait 24h or manually reset via database
-
-*   **Builder generates invalid code**:
-    *   *Symptom*: `SyntaxError` in logs
-    *   *Fix*: Check `src/registry/<source>.py` manually
-
-*   **Circuit breaker triggered**:
-    *   *Symptom*: "Circuit breaker triggered" in logs
-    *   *Fix*: Max 3 fix attempts per day per source. Wait or reset.
+**REST API** (FastAPI)
+- Programmatic access for integrations
+- Swagger/ReDoc documentation at `/docs`
 
 ---
 
 ## 📚 Documentation
 
-*   **[Vision & Roadmap](VISION.md)**: Architecture tiers and MVP checklist.
-*   **[Storage Design](docs/storage_architecture.md)**: Bronze/Silver data layers.
-*   **[Parser Contracts](docs/parser_architecture.md)**: BaseParser interface.
-*   **[Dynamic Runtime](docs/runtime_architecture.md)**: Plugin system.
+- **[VISION.md](VISION.md)** — Detailed roadmap and MVP checklist
+- **[docs/USAGE.md](docs/USAGE.md)** — Complete usage guide with commands and examples
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System architecture and design patterns
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** — Development guidelines and code standards
+- **[docs/API.md](docs/API.md)** — REST API endpoint reference
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — Production deployment guide
 
 ---
 
-## 🤖 Programmatic Usage
+## 🛠 Tech Stack
 
-```python
-from src.orchestration import Orchestrator
-
-# Initialize
-orch = Orchestrator()
-
-# Add a source
-task = orch.add_source("https://example.com/data")
-
-# Check status
-status = orch.status()
-print(f"Sources: {status['total_sources']}, Healthy: {status['healthy']}")
-
-# Run orchestrator (blocking)
-orch.run()
-```
-
-### Direct Agent Usage
-
-```python
-from src.agents.scout import ScoutAgent
-from src.agents.builder import BuilderAgent
-
-# 1. Scout the site
-scout = ScoutAgent()
-blueprint = scout.analyze("https://example.com/data")
-
-# 2. Build the plugin
-builder = BuilderAgent()
-plugin_path = builder.build(blueprint)
-
-print(f"Generated: {plugin_path}")
-```
+| Component | Technology |
+|-----------|------------|
+| **Language** | Python 3.10+ |
+| **LLM** | Ollama Cloud / OpenAI |
+| **Database** | SQLite (via SQLAlchemy) |
+| **Web Scraping** | Firecrawl MCP |
+| **Interface** | CLI + Streamlit + FastAPI |
 
 ---
 
-## License
+## 🔮 Future Vision
+
+### Tier 3: Intelligence Kernel
+- **Learning from fixes**: When the Doctor successfully repairs a scraper, save the before/after diff to a knowledge base
+- **Pattern recognition**: Inject relevant "lessons" into future Builder prompts
+- **Data quality validation**: Detect silent failures where code runs but returns invalid data
+
+### Tier 4: Ecosystem Kernel
+- **Multi-domain support**: Sports, finance, news, e-commerce
+- **Agent marketplace**: Share and import blueprints across instances
+- **Federation**: Coordinate multiple pipeline instances
+- **Observability**: Prometheus metrics, Grafana dashboards
+
+---
+
+## 📖 License
 
 MIT

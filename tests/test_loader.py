@@ -1,39 +1,50 @@
-from datetime import datetime
+import os
 from src.core.plugins import PluginRegistry
 from loguru import logger
-import sys
+import unittest
 
-def test_dynamic_loading():
-    logger.info("Testing Dynamic Plugin Loading...")
-    
-    # 1. Initialize Registry
-    registry = PluginRegistry()
-    registry.discover_parsers()
-    
-    # 2. Verify we found the NBA plugin (which we moved to src/registry/nba_plugin.py)
-    if "NBAScoreboardParser" not in registry.parsers:
-        logger.error("Failed to discover NBAScoreboardParser!")
-        sys.exit(1)
+class TestPluginLoading(unittest.TestCase):
+    def setUp(self):
+        self.registry_path = "src/registry"
+        self.plugin_path = os.path.join(self.registry_path, "dummy_plugin.py")
         
-    logger.info("Successfully discovered NBAScoreboardParser.")
-    
-    # 3. Instantiate and Use
-    parser = registry.get_parser("NBAScoreboardParser")
-    
-    # Mock Data
-    mock_payload = {
-        "payload": {
-            "scoreboard": {
-                "games": [{"gameId": "999", "homeTeam": {"teamTricode": "TST", "score": 0}, "awayTeam": {"teamTricode": "TST2", "score": 0}}]
-            }
-        }
-    }
-    
-    results = parser.parse(mock_payload)
-    assert len(results) == 1
-    assert results[0].source == "nba"
-    
-    logger.success("Verification Passed: Dynamic Loading functional.")
+        # Create a dummy plugin file
+        with open(self.plugin_path, "w") as f:
+            f.write("""
+from typing import Dict, Any, List
+from src.processing.base import BaseParser, ParsingResult
 
-    logger.success("Verification Passed: Dynamic Loading functional.")
+class DummyTestParser(BaseParser):
+    def parse(self, message: Dict[str, Any]) -> List[ParsingResult]:
+        return [ParsingResult("test", "dummy", "1", {}, None)]
+""")
+
+    def tearDown(self):
+        if os.path.exists(self.plugin_path):
+            os.remove(self.plugin_path)
+
+    def test_dynamic_loading(self):
+        logger.info("Testing Dynamic Plugin Loading...")
+        
+        # 1. Initialize Registry
+        registry = PluginRegistry()
+        registry.discover_parsers()
+        
+        # 2. Verify we found the Dummy plugin
+        if "DummyTestParser" not in registry.parsers:
+             logger.error("Failed to discover DummyTestParser!")
+             # Fail test
+             assert False, "DummyTestParser not found"
+            
+        logger.info("Successfully discovered DummyTestParser.")
+        
+        # 3. Instantiate and Use
+        parser = registry.get_parser("DummyTestParser")
+        results = parser.parse({})
+        
+        assert len(results) == 1
+        assert results[0].source == "test"
+        
+        logger.success("Verification Passed: Dynamic Loading functional.")
+
 

@@ -10,15 +10,15 @@ def test_scout():
     # 1. Test against a known page (Example.com often simple, let's use a dummy heuristic target)
     # We will use a Mock or a public stable site.
     # Wikipedia 'List of X' pages are good for Table detection.
-    url = "https://en.wikipedia.org/wiki/List_of_current_NBA_team_rosters"
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     
     # Analyze
-    blueprint = agent.analyze("nba_wiki", url)
+    blueprint = agent.analyze(url)
     
     logger.info(f"Generated Blueprint: {blueprint.model_dump_json(indent=2)}")
     
     # Verification
-    assert blueprint.source_name == "nba_wiki"
+    assert "wiki" in blueprint.source_name or "sp500" in blueprint.source_name
     assert blueprint.base_url == url
     # Wikipedia should trigger the Table heuristic
     if "table" in blueprint.description.lower():

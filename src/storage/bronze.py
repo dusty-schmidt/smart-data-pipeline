@@ -32,6 +32,26 @@ class BronzeStorage:
             # Refresh to get the generated ID
             session.refresh(log_entry)
             logger.info(f"Saved raw data to DB (ID: {log_entry.id})")
+            
+            # ALSO save to file system for easy inspection (Data Lake pattern)
+            try:
+                timestamp_str = log_entry.ingested_at.strftime("%Y-%m-%dT%H-%M-%S")
+                filename = f"{source}_{timestamp_str}.json"
+                file_path = os.path.join("data/bronze", filename)
+                
+                # Ensure directory exists
+                os.makedirs("data/bronze", exist_ok=True)
+                
+                with open(file_path, "w") as f:
+                    import json
+                    # Use default=str to handle datetime objects
+                    json.dump({"metadata": {"source": source, "id": log_entry.id, "ingested_at": str(log_entry.ingested_at)}, "payload": data}, f, indent=2, default=str)
+                    
+                logger.info(f"Saved raw data to file: {file_path}")
+            except Exception as file_error:
+                logger.error(f"Failed to save raw data to file: {file_error}")
+                # Don't fail the whole operation if file write fails, DB is primary
+            
             return log_entry.id
         except Exception as e:
             session.rollback()

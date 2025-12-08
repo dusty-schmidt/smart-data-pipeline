@@ -47,10 +47,12 @@ def get_llm_config() -> LLMConfig:
     
     # Auto-detect based on available keys
     if provider == "auto":
-        if os.getenv("OLLAMA_API_KEY"):
-            provider = "ollama"
-        else:
+        if os.getenv("OPENAI_API_KEY"):
             provider = "openai"
+        else:
+            # Default to Ollama if no explicit OpenAI key found
+            # This supports local users without any keys set
+            provider = "ollama"
     
     if provider == "ollama":
         return LLMConfig(
