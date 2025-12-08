@@ -1,4 +1,3 @@
-
 import sys
 import time
 import os
@@ -10,6 +9,7 @@ sys.path.append(os.getcwd())
 
 from src.orchestration.orchestrator import Orchestrator
 from src.orchestration.task_queue import TaskState, TaskType
+from src.agents.builder import BuilderAgent
 
 import shutil
 import tempfile
