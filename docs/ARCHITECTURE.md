@@ -22,10 +22,38 @@ The Silver layer is the "refinery" that transforms raw JSON into structured, que
 
 **Schema:** `silver_entities` table with columns: `id`, `source`, `type`, `external_id`, `timestamp`, `status`, `name`, `labels` (JSON), `data` (JSON)
 
-**Key Features:**
-- **Idempotent upserts**: Composite key `(source, type, external_id)` prevents duplicates
-- **Flexible labeling**: Tag entities with arbitrary metadata without schema changes
-- **Domain agnostic**: Same table structure for all data types
+### Knowledge Base (Tier 3 Intelligence)
+Added in v1.1.0, the Knowledge Base stores the "wisdom" of the system.
+
+**Schema:** `knowledge_base` (Lessons)
+- `error_type`: The class of error (e.g., `SelectorNotFound`)
+- `domain_pattern`: Type of site (e.g., `ecommerce`, `react-app`)
+- `fix_strategy`: Abstracted strategy (e.g., "Use semantic class names")
+- `success_count`: Reinforcement learning metric
+
+This allows the Doctor Agent to stop "fixing blind" and start applying proven solutions.
+
+---
+
+## Persistence & Resilience (Tier 1 Production)
+
+### 1. Task Queue
+A persistent SQLite-backed queue ensures no work is lost if the process crashes.
+- **States**: `PENDING`, `IN_PROGRESS`, `COMPLETED`, `FAILED`, `QUARANTINED`
+- **Resume**: On startup, the Orchestrator checks for partial `IN_PROGRESS` tasks.
+
+### 2. Error Recovery
+We employ a "Fail Gracefully, Retry Smartly" policy using the `tenacity` library.
+- **LLM Calls**: Exponential backoff (retry on 503, 429, timeouts).
+- **Database**: Spin-lock retries for SQLite concurrency (`OperationalError`).
+- **Network**: Standard HTTP retries for fetching sources.
+
+### 3. Structured Logging
+Centralized `loguru` configuration provides:
+- **Console**: Colorized, human-readable for development.
+- **File**: `logs/pipeline.log` in JSON format for automated monitoring parsing.
+
+---
 
 ## Parser Contract
 

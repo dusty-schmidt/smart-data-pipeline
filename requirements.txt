@@ -6,10 +6,14 @@ sqlalchemy
 streamlit
 pandas
 mcp
-ollama
 python-dotenv
 fastapi
 uvicorn[standard]
 pytest
 pytest-asyncio
+httpx
 beautifulsoup4
+sqlalchemy
+loguru
+python-dotenv
+tenacity>=8.0.0

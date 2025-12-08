@@ -61,6 +61,19 @@ class FixHistoryRecord(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class Lesson(Base):
+    """Knowledge base entry for learned fix strategies."""
+    __tablename__ = 'knowledge_base'
+    
+    id = Column(Integer, primary_key=True)
+    error_type = Column(String, index=True)      # e.g. "SelectorNotFound"
+    domain_pattern = Column(String, index=True)  # e.g. "shopify.com" or "react-sites"
+    symptom_description = Column(Text)           # Context of when this applies
+    fix_strategy = Column(Text)                  # Abstracted strategy
+    success_count = Column(Integer, default=1)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 # =============================================================================
 # Tier 0: Storage Tables
 # =============================================================================

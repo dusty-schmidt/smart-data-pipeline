@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import OperationalError
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 from loguru import logger
 import os
 from src.storage.models import Base, BronzeLog
@@ -14,6 +16,12 @@ class BronzeStorage:
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_fixed(0.1),
+        retry=retry_if_exception_type(OperationalError),
+        reraise=True
+    )
     def save(self, data: Dict[str, Any], source: str) -> int:
         """
         Saves raw data to the bronze_logs table.
@@ -53,6 +61,10 @@ class BronzeStorage:
                 # Don't fail the whole operation if file write fails, DB is primary
             
             return log_entry.id
+        except OperationalError as e:
+            logger.warning(f"Database locked. Retrying... ({e})")
+            session.rollback()
+            raise
         except Exception as e:
             session.rollback()
             logger.error(f"Failed to save to DB: {e}")

@@ -2,7 +2,7 @@ import httpx
 import json
 from bs4 import BeautifulSoup
 from typing import Optional
-from loguru import logger
+from src.utils.logger import logger
 from src.agents.base import BaseAgent
 from src.agents.models import DataBlueprint
 

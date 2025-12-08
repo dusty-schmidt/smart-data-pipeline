@@ -1,0 +1,34 @@
+[project]
+name = "smart-data-pipeline"
+version = "1.1.0"
+description = "Self-healing autonomous data ingestion system"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx",
+    "pydantic",
+    "loguru",
+    "tenacity>=8.0.0",
+    "sqlalchemy",
+    "streamlit",
+    "pandas",
+    "mcp",
+    "python-dotenv",
+    "fastapi",
+    "uvicorn[standard]",
+    "beautifulsoup4",
+    "ollama",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-asyncio",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

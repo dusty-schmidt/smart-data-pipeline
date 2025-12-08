@@ -12,7 +12,7 @@ Instead of humans maintaining scrapers, **AI agents maintain themselves**. The s
 
 - **The Scout** — Analyzes web pages and understands data structures
 - **The Builder** — Generates Python code to extract that data  
-- **The Doctor** — Diagnoses failures and patches broken scrapers
+- **The Doctor** — Diagnoses failures, patches broken scrapers, and **learns from its own success**
 - **The Orchestrator** — Coordinates the workflow and manages the task queue
 
 The result is a **self-sustaining data ecosystem** where adding a new data source is as simple as providing a URL. The system handles discovery, code generation, deployment, monitoring, and repair—all autonomously.
@@ -23,9 +23,23 @@ The result is a **self-sustaining data ecosystem** where adding a new data sourc
 
 **Prerequisites:** Python 3.10+, LLM API key (Ollama/OpenAI), Firecrawl API key
 
-**Setup:** Install dependencies with `pip install -r requirements.txt` and configure API keys in `.env`
+**Quick Start (New in v1.1.0):**
+The project is now a fully installed package using `uv`.
 
-**Usage:** Add sources with `python -m src add <url>`, check status with `python -m src status`, and run the orchestrator with `python -m src run`
+```bash
+# 1. Install dependencies
+uv sync
+
+# 2. Configure Environment
+cp .env.example .env
+# Edit .env with your keys
+
+# 3. Add a source (The system will build a scraper for you)
+uv run python -m src add https://example.com
+
+# 4. Run the Orchestrator
+uv run python -m src run
+```
 
 ---
 
@@ -38,7 +52,7 @@ The system is organized into independent tiers. Each tier can function without t
 Tier 0: Storage (Bronze/Silver)        ✅ Complete
 Tier 1: Agents (Scout/Builder)         ✅ Complete  
 Tier 2: Autonomy (Doctor/Orchestrator) ✅ Complete
-Tier 3: Intelligence (Learning)        📋 Future
+Tier 3: Intelligence (Learning)        🚧 Alpha (v1.1.0)
 Tier 4: Ecosystem (Multi-domain)       📋 Future
 ```
 
@@ -57,20 +71,20 @@ graph LR
     Health -->|3 Strikes| Doctor[Doctor Agent]
     Doctor -->|Diagnoses & Patches| Staging[Staging]
     Staging -->|Validated| Registry
+    Doctor -->|Extracts Lesson| KB[Knowledge Base]
+    KB -->|Injects Wisdom| Doctor
 ```
 
-When a scraper fails, the Doctor agent:
-1. Collects diagnostic context (error logs, HTML diffs, current code)
-2. Uses an LLM to generate a patch
-3. Deploys the fix to a staging environment
-4. Validates the patch before promoting to production
+When a scraper fails, the **Doctor Agent**:
+1.  **Diagnoses**: Analyzes error logs and HTML diffs using LLM.
+2.  **Consults**: Checks the **Knowledge Base** for similar past failures ("Lessons").
+3.  **Patches**: Generates a fix and deploys it to staging.
+4.  **Learns**: On success, generalizes the fix into a new Lesson for the future.
 
-### 3. **Circuit Breakers & Safeguards**
-To prevent infinite loops and runaway costs:
-- **3-strike quarantine**: Sources that fail repeatedly are quarantined
-- **Max 3 fix attempts per day**: Prevents the Doctor from burning through API credits
-- **Staging validation**: All patches are tested before production deployment
-- **Persistent state**: The system survives restarts and resumes work
+### 3. **Production Resilience (v1.1.0)**
+- **Structured Logging**: JSON logs for machine parsing, colorized console output for humans.
+- **Error Recovery**: Automatic retries with exponential backoff for LLM APIs and Database locks.
+- **Circuit Breakers**: Prevents infinite loops and cost overruns (Max 3 daily fix attempts).
 
 ### 4. **Data Lineage & Traceability**
 Data flows through a two-layer architecture:
@@ -79,15 +93,6 @@ Data flows through a two-layer architecture:
 
 This enables debugging, reprocessing, and schema evolution without data loss.
 
-### 5. **80/20 Rule**
-Focus on high-value automation first. The current MVP achieves:
-- ✅ Zero-touch source addition (URL → working scraper)
-- ✅ Persistent operation (survives restarts)
-- ✅ Self-healing (automatic repair of broken scrapers)
-- ✅ Observable (CLI + web dashboard)
-
-Advanced features like learning from past fixes and multi-domain federation are deferred to future tiers.
-
 ---
 
 ## 🏗 Architecture Overview
@@ -95,40 +100,21 @@ Advanced features like learning from past fixes and multi-domain federation are 
 ### Core Components
 
 **Agents** (`src/agents/`)
-- Specialized AI workers that analyze, build, and repair data sources
-- Share common LLM and MCP (Model Context Protocol) patterns
-- Generate executable Python code dynamically
+- Specialized AI workers that analyze, build, and repair data sources.
+- **Scout**: Uses Firecrawl/LLM to understand pages.
+- **Builder**: Writes Python code from Blueprints.
 
 **Orchestration** (`src/orchestration/`)
-- Task queue with persistent SQLite storage
-- Health tracking with quarantine logic
-- Doctor agent for self-healing
-- Main orchestrator loop coordinating all workflows
+- **Task Queue**: Persistent SQLite-backed job management.
+- **Health Tracker**: Monitors success/failure rates.
+- **Doctor**: The self-healing engine with "The Learner" module.
 
 **Storage** (`src/storage/`)
-- Bronze/Silver data layers with ELT pattern
-- Metadata tracking for lineage and debugging
-- Orchestration tables (task queue, health, fix history)
+- **Bronze/Silver**: ELT data layers.
+- **Knowledge Base**: Stores learned "Lessons" from fix history.
 
 **Plugin Registry** (`src/registry/`)
-- Hot-loadable Python modules generated by the Builder
-- Staging area for validating patches before production
-- Dynamic import system for zero-downtime updates
-
-### Interfaces
-
-**CLI** (`python -m src`)
-- Add sources, check status, view tasks, force repairs
-- Run the orchestrator in continuous or single-task mode
-
-**Web Dashboard** (Streamlit)
-- Real-time health monitoring
-- Task queue visualization
-- Fix history and audit logs
-
-**REST API** (FastAPI)
-- Programmatic access for integrations
-- Swagger/ReDoc documentation at `/docs`
+- Hot-loadable Python modules generated by the Builder.
 
 ---
 
@@ -148,25 +134,13 @@ Advanced features like learning from past fixes and multi-domain federation are 
 | Component | Technology |
 |-----------|------------|
 | **Language** | Python 3.10+ |
+| **Packaging** | uv / pyproject.toml |
 | **LLM** | Ollama Cloud / OpenAI |
 | **Database** | SQLite (via SQLAlchemy) |
 | **Web Scraping** | Firecrawl MCP |
 | **Interface** | CLI + Streamlit + FastAPI |
-
----
-
-## 🔮 Future Vision
-
-### Tier 3: Intelligence Kernel
-- **Learning from fixes**: When the Doctor successfully repairs a scraper, save the before/after diff to a knowledge base
-- **Pattern recognition**: Inject relevant "lessons" into future Builder prompts
-- **Data quality validation**: Detect silent failures where code runs but returns invalid data
-
-### Tier 4: Ecosystem Kernel
-- **Multi-domain support**: Sports, finance, news, e-commerce
-- **Agent marketplace**: Share and import blueprints across instances
-- **Federation**: Coordinate multiple pipeline instances
-- **Observability**: Prometheus metrics, Grafana dashboards
+| **Logging** | Loguru (Structured JSON) |
+| **Resilience** | Tenacity (Retries) |
 
 ---
 

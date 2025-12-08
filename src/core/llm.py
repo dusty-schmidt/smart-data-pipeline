@@ -3,6 +3,7 @@ import httpx
 import json
 from typing import Dict, Any, Optional, List
 from loguru import logger
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from src.core.config import llm_config, LLMConfig
 
@@ -47,10 +48,18 @@ class LLMClient:
             raise ValueError(f"API key not set for provider '{self.provider}'.")
 
         if self.use_ollama:
+            # Ollama client has its own retry logic usually, but we could wrap this too if needed.
+            # unique case for now: just wrap common network errors for HTTP logic
             return self._ollama_chat(messages, json_mode)
         else:
             return self._openai_chat(messages, json_mode)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((Exception)), # Ideally narrowed down, but Ollama lib exceptions vary
+        reraise=True
+    )
     def _ollama_chat(self, messages: List[Dict[str, str]], json_mode: bool = False) -> str:
         """
         Uses the Ollama Python client for Ollama Cloud.
@@ -81,9 +90,15 @@ class LLMClient:
             logger.error("ollama library not installed. Run: pip install ollama")
             raise
         except Exception as e:
-            logger.error(f"Ollama request failed: {e}")
+            logger.warning(f"Ollama request failed: {e}. Retrying...")
             raise
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout)),
+        reraise=True
+    )
     def _openai_chat(self, messages: List[Dict[str, str]], json_mode: bool = False) -> str:
         """
         Uses HTTP requests for OpenAI-compatible APIs.
@@ -108,6 +123,9 @@ class LLMClient:
             resp.raise_for_status()
             data = resp.json()
             return data["choices"][0]["message"]["content"]
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+            logger.warning(f"OpenAI API connection issue: {e}. Retrying...")
+            raise
         except Exception as e:
             logger.error(f"OpenAI-compatible API request failed: {e}")
             raise

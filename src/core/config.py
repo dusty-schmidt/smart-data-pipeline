@@ -6,6 +6,9 @@ All model, provider, and system settings in one place.
 import os
 from dataclasses import dataclass
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 @dataclass

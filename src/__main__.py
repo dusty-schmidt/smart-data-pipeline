@@ -12,8 +12,8 @@ import argparse
 import sys
 from datetime import datetime
 
-from loguru import logger
 from dotenv import load_dotenv
+from src.utils.logger import logger
 
 # Load environment variables
 load_dotenv()
@@ -26,10 +26,10 @@ def cmd_add(args):
     orch = Orchestrator()
     task = orch.add_source(args.url, priority=args.priority)
     
-    print(f"✅ Task queued: [{task.task_id}] ADD_SOURCE → {args.url}")
+    logger.info(f"Task queued: [{task.task_id}] ADD_SOURCE → {args.url}")
     
     if args.now:
-        print("🚀 Processing immediately...")
+        logger.info("Processing immediately...")
         orch.startup()
         orch.process_task(task)
 
@@ -37,29 +37,26 @@ def cmd_add(args):
 def cmd_status(args):
     """Show current status."""
     from src.orchestration.orchestrator import Orchestrator
-    from src.orchestration.health import SourceState
     
     orch = Orchestrator()
     status = orch.status()
     
-    print("\n📊 Pipeline Status")
-    print("=" * 50)
-    print(f"Pending Tasks: {status['pending_tasks']}")
-    print(f"Total Sources: {status['total_sources']}")
-    print()
+    logger.info("Pipeline Status")
+    logger.info("=" * 50)
+    logger.info(f"Pending Tasks: {status['pending_tasks']}")
+    logger.info(f"Total Sources: {status['total_sources']}")
     
     # Status breakdown
-    print("Health Summary:")
-    print(f"  ✅ Active:      {status['healthy']}")
-    print(f"  ⚠️  Degraded:    {status['degraded']}")
-    print(f"  🔒 Quarantined: {status['quarantined']}")
-    print(f"  💀 Dead:        {status['dead']}")
-    print()
+    logger.info("Health Summary:")
+    logger.info(f"  ✅ Active:      {status['healthy']}")
+    logger.info(f"  ⚠️  Degraded:    {status['degraded']}")
+    logger.info(f"  🔒 Quarantined: {status['quarantined']}")
+    logger.info(f"  💀 Dead:        {status['dead']}")
     
     # Source details
     if status['sources']:
-        print("Sources:")
-        print("-" * 50)
+        logger.info("Sources:")
+        logger.info("-" * 50)
         for s in status['sources']:
             icon = {
                 'ACTIVE': '✅',
@@ -77,11 +74,9 @@ def cmd_status(args):
                 except:
                     pass
             
-            print(f"  {icon} {s['name']:<30} (failures: {s['failures']}, last: {last_success})")
+            logger.info(f"  {icon} {s['name']:<30} (failures: {s['failures']}, last: {last_success})")
     else:
-        print("No sources registered yet.")
-    
-    print()
+        logger.info("No sources registered yet.")
 
 
 def cmd_fix(args):
@@ -91,10 +86,10 @@ def cmd_fix(args):
     orch = Orchestrator()
     task = orch.fix_source(args.source, priority=10)
     
-    print(f"🔧 Repair queued: [{task.task_id}] FIX_SOURCE → {args.source}")
+    logger.info(f"Repair queued: [{task.task_id}] FIX_SOURCE → {args.source}")
     
     if args.now:
-        print("🚀 Processing immediately...")
+        logger.info("Processing immediately...")
         orch.startup()
         orch.process_task(task)
 
@@ -105,14 +100,13 @@ def cmd_run(args):
     
     orch = Orchestrator()
     
-    print("🚀 Starting orchestrator...")
-    print("   Press Ctrl+C to stop")
-    print()
+    logger.info("Starting orchestrator...")
+    logger.info("Press Ctrl+C to stop")
     
     try:
         orch.run(once=args.once)
     except KeyboardInterrupt:
-        print("\n⏹️  Stopping...")
+        logger.info("Stopping...")
         orch.stop()
 
 
@@ -123,18 +117,16 @@ def cmd_tasks(args):
     tq = TaskQueue()
     tasks = tq.get_all_tasks(limit=args.limit)
     
-    print("\n📋 Task Queue")
-    print("=" * 70)
+    logger.info("Task Queue")
+    logger.info("=" * 70)
     
     if not tasks:
-        print("No tasks in queue.")
+        logger.info("No tasks in queue.")
     else:
-        print(f"{'ID':<5} {'Type':<15} {'State':<12} {'Target':<30}")
-        print("-" * 70)
+        logger.info(f"{'ID':<5} {'Type':<15} {'State':<12} {'Target':<30}")
+        logger.info("-" * 70)
         for t in tasks:
-            print(f"{t.task_id:<5} {t.task_type.value:<15} {t.state.value:<12} {t.target[:30]:<30}")
-    
-    print()
+            logger.info(f"{t.task_id:<5} {t.task_type.value:<15} {t.state.value:<12} {t.target[:30]:<30}")
 
 
 def main():
@@ -177,14 +169,6 @@ def main():
     if args.command is None:
         parser.print_help()
         sys.exit(0)
-    
-    # Configure logging
-    logger.remove()
-    logger.add(
-        sys.stderr,
-        format="<green>{time:HH:mm:ss}</green> | <level>{level:<8}</level> | {message}",
-        level="INFO"
-    )
     
     args.func(args)
 

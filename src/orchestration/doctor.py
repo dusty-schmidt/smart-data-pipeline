@@ -16,9 +16,9 @@ from loguru import logger
 
 from src.agents.base import BaseAgent
 from src.orchestration.health import HealthTracker, SourceState
-from src.storage.models import FixHistoryRecord, Base
+from src.storage.models import FixHistoryRecord, Base, Lesson
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 
 @dataclass
@@ -157,6 +157,13 @@ Respond in JSON format:
 }
 """
         
+
+        # Contextual Learning: Retrieve relevant lessons
+        lessons = self._get_relevant_lessons(context)
+        lesson_text = ""
+        if lessons:
+            lesson_text = "\n\nRelevant past lessons:\n" + "\n".join([f"- {l.symptom_description} -> {l.fix_strategy}" for l in lessons])
+
         user_message = f"""
 Error Context:
 - Source: {context.source_name}
@@ -171,6 +178,7 @@ Current Code:
 ```
 
 {f"HTML Changed: {context.html_changed}" if context.previous_html_hash else "No previous HTML hash for comparison"}
+{lesson_text}
 
 Diagnose the issue and provide a fix strategy.
 """
@@ -208,6 +216,81 @@ Diagnose the issue and provide a fix strategy.
                 confidence=0.0,
             )
     
+    def _get_relevant_lessons(self, context: DiagnosisContext) -> List[Lesson]:
+        """Query knowledge base for relevant lessons."""
+        session = self.Session()
+        try:
+            # Simple heuristic: match error type or source name pattern
+            # In a real system, this would use vector embeddings
+            return session.query(Lesson).filter(
+                (Lesson.error_type == context.error_type) |
+                (Lesson.domain_pattern.like(f"%{context.source_name}%"))
+            ).order_by(Lesson.success_count.desc()).limit(3).all()
+        except Exception as e:
+            logger.warning(f"[Doctor] Failed to fetch lessons: {e}")
+            return []
+        finally:
+            session.close()
+
+    def learn_from_success(self, context: DiagnosisContext, diagnosis: Diagnosis, patch: str) -> None:
+        """
+        Extract a lesson from a successful fix and save to Knowledge Base.
+        """
+        logger.info(f"[Doctor] Learning from success for {context.source_name}")
+        
+        system_prompt = """You are a Senior Engineer distilling lessons from a fixed bug.
+        
+        Analyze the error, the diagnosis, and the successful patch.
+        Extract a generalized lesson that could help future debugging.
+        
+        Output JSON:
+        {
+            "domain_pattern": "e.g. 'shopify_sites' or 'generic_html'",
+            "symptom_description": "When finding X error with Y context",
+            "fix_strategy": "Try approach Z instead",
+            "reasoning": "Why this worked"
+        }
+        """
+        
+        user_message = f"""
+        Error: {context.error_type}: {context.error_message}
+        Root Cause: {diagnosis.root_cause}
+        Fix Strategy Applied: {diagnosis.suggested_fix}
+        
+        Patch Diff Summary:
+        (Length: {len(patch)} chars)
+        
+        Extract a generalized lesson.
+        """
+        
+        try:
+            response = self.ask_llm(
+                prompt=user_message,
+                system_prompt=system_prompt,
+                json_mode=True
+            )
+            
+            import json
+            data = json.loads(response)
+            
+            session = self.Session()
+            try:
+                lesson = Lesson(
+                    error_type=context.error_type,
+                    domain_pattern=data.get("domain_pattern", context.source_name),
+                    symptom_description=data.get("symptom_description", ""),
+                    fix_strategy=data.get("fix_strategy", ""),
+                    success_count=1
+                )
+                session.add(lesson)
+                session.commit()
+                logger.info(f"[Doctor] Learned new lesson: {lesson.fix_strategy}")
+            finally:
+                session.close()
+                
+        except Exception as e:
+            logger.error(f"[Doctor] Learning failed: {e}")
+
     def generate_patch(self, diagnosis: Diagnosis, context: DiagnosisContext) -> Optional[str]:
         """
         Generate code patch to fix the issue using LLM.
@@ -434,6 +517,10 @@ Apply the fix and return the complete corrected code.
             
             # Success!
             self._record_fix_history(source_name, context, diagnosis, success=True, patch=patch)
+            
+            # Learn from this success
+            self.learn_from_success(context, diagnosis, patch)
+            
             logger.success(f"[Doctor] Successfully healed {source_name}")
             return True
             

@@ -1,5 +1,6 @@
 import httpx
 import asyncio
+import json
 from typing import Dict, Any, Optional
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -45,7 +46,11 @@ class BaseFetcher:
                 if "application/json" not in content_type and not response.text.strip().startswith(("{", "[")):
                     logger.warning(f"Response might not be JSON. Content-Type: {content_type}")
                 
-                return response.json()
+                try:
+                    return response.json()
+                except json.JSONDecodeError:
+                    # Fallback for HTML/Text content
+                    return {"html": response.text, "raw_text": response.text}
                 
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP Error {e.response.status_code} for {self.url}")
