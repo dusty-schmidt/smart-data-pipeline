@@ -27,10 +27,5 @@ def test_scout():
     else:
         logger.warning("Scout did not detect table, but ran successfully.")
 
-if __name__ == "__main__":
-    try:
-        test_scout()
-    except Exception as e:
-        logger.exception("Test Failed")
-        # Don't fail the build on network flaky, just log
-        pass
+
+

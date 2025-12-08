@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
 from typing import Any, Dict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -23,7 +24,7 @@ class BronzeStorage:
             log_entry = BronzeLog(
                 source=source,
                 payload=data,
-                ingested_at=datetime.utcnow()
+                ingested_at=datetime.now(timezone.utc)
             )
             session.add(log_entry)
             session.commit()

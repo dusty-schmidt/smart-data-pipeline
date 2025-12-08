@@ -197,6 +197,9 @@ python -m pytest tests/ -v
 
 # Run specific test
 python -m pytest tests/test_end_to_end_agents.py -v
+
+# Run API tests
+python -m pytest tests/test_api.py -v
 ```
 
 ---

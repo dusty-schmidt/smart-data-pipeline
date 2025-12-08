@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
 from src.storage.silver import SilverStorage
 from loguru import logger
 import sys
@@ -15,7 +16,7 @@ def test_generic_upsert():
         "source": "manual_test",
         "type": "game",
         "external_id": ext_id,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         "status": "InProgress",
         "name": "Team A vs Team B",
         "data": {
@@ -37,7 +38,7 @@ def test_generic_upsert():
         "source": "manual_test",
         "type": "game",
         "external_id": ext_id,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         "status": "Final", # Changed
         "name": "Team A vs Team B",
         "data": {
@@ -59,7 +60,7 @@ def test_generic_upsert():
         "source": "alpaca",
         "type": "quote",
         "external_id": "AAPL",
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         "status": "Active",
         "name": "Apple Inc.",
         "data": {
@@ -75,9 +76,5 @@ def test_generic_upsert():
 
     logger.success("Verification Passed: Generic Upsert handles multiple domains.")
 
-if __name__ == "__main__":
-    try:
-        test_generic_upsert()
-    except Exception as e:
-        logger.exception("Test Failed")
-        sys.exit(1)
+    logger.success("Verification Passed: Generic Upsert handles multiple domains.")
+

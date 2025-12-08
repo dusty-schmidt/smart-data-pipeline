@@ -43,9 +43,5 @@ def test_mcp_flow():
         
     logger.success("Verification Passed: MCP Manager flow.")
 
-if __name__ == "__main__":
-    try:
-        test_mcp_flow()
-    except Exception as e:
-        logger.exception("Test Failed")
-        sys.exit(1)
+    logger.success("Verification Passed: MCP Manager flow.")
+

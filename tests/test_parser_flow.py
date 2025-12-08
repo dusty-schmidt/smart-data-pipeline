@@ -1,8 +1,9 @@
 from datetime import datetime
-from src.processing.nba import NBAScoreboardParser
+from src.registry.nba_plugin import NBAScoreboardParser
 from src.storage.silver import SilverStorage
 from loguru import logger
 import sys
+
 
 def test_parser_flow():
     logger.info("Testing Parser -> Storage Flow...")
@@ -61,9 +62,5 @@ def test_parser_flow():
     
     logger.success("Verification Passed: Full Pipeline (Dict -> Parser -> Object -> DB).")
 
-if __name__ == "__main__":
-    try:
-        test_parser_flow()
-    except Exception as e:
-        logger.exception("Test Failed")
-        sys.exit(1)
+    logger.success("Verification Passed: Full Pipeline (Dict -> Parser -> Object -> DB).")
+

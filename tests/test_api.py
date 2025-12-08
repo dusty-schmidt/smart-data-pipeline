@@ -5,7 +5,16 @@ import sys
 # Ensure src is in path
 sys.path.append(os.getcwd())
 
+import src.api.app as app_module
 from src.api.app import app
+from src.orchestration.orchestrator import Orchestrator
+
+# Initialize orchestrator for tests
+test_orchestrator = Orchestrator()
+test_orchestrator.startup()
+
+# Replace the global orchestrator instance in the app module
+app_module.orchestrator = test_orchestrator
 
 client = TestClient(app)
 

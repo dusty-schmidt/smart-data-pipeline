@@ -5,7 +5,8 @@ Tracks success/failure rates, manages quarantine, and provides health status.
 """
 from dataclasses import dataclass
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 from enum import Enum
 
 from sqlalchemy import create_engine
@@ -104,7 +105,7 @@ class HealthTracker:
     
     def _reset_daily_counters_if_needed(self, record: SourceHealthRecord) -> None:
         """Reset fix_attempts_today if we're in a new day."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if record.fix_attempts_reset_at is None:
             record.fix_attempts_reset_at = now
             return
@@ -127,7 +128,7 @@ class HealthTracker:
             
             record.success_count += 1
             record.consecutive_failures = 0
-            record.last_success_at = datetime.utcnow()
+            record.last_success_at = datetime.now(timezone.utc)
             record.state = SourceState.ACTIVE.value
             record.quarantine_until = None
             
@@ -154,13 +155,13 @@ class HealthTracker:
             
             record.failure_count += 1
             record.consecutive_failures += 1
-            record.last_failure_at = datetime.utcnow()
+            record.last_failure_at = datetime.now(timezone.utc)
             record.last_error = error[:1000] if error else None  # Truncate long errors
             
             # Apply 3-strikes rule
             if record.consecutive_failures >= QUARANTINE_THRESHOLD:
                 record.state = SourceState.QUARANTINED.value
-                record.quarantine_until = datetime.utcnow() + timedelta(hours=DEFAULT_QUARANTINE_HOURS)
+                record.quarantine_until = datetime.now(timezone.utc) + timedelta(hours=DEFAULT_QUARANTINE_HOURS)
                 logger.warning(f"[{source_name}] QUARANTINED after {record.consecutive_failures} failures")
             elif record.consecutive_failures >= 2:
                 record.state = SourceState.DEGRADED.value
@@ -193,7 +194,7 @@ class HealthTracker:
         try:
             record = self._get_or_create_record(session, source_name)
             record.state = SourceState.QUARANTINED.value
-            record.quarantine_until = datetime.utcnow() + timedelta(hours=hours)
+            record.quarantine_until = datetime.now(timezone.utc) + timedelta(hours=hours)
             session.commit()
             logger.warning(f"[{source_name}] Manually quarantined for {hours}h")
         finally:
@@ -214,7 +215,7 @@ class HealthTracker:
                 return False
             
             # Check if quarantine has expired
-            if record.quarantine_until and record.quarantine_until < datetime.utcnow():
+            if record.quarantine_until and record.quarantine_until < datetime.now(timezone.utc):
                 # Auto-release from quarantine
                 record.state = SourceState.DEGRADED.value
                 record.quarantine_until = None

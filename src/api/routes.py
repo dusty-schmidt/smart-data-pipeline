@@ -79,6 +79,6 @@ def list_tasks(orch: Orchestrator = Depends(get_orchestrator)):
             created_at=t.created_at,
             started_at=t.started_at,
             completed_at=t.completed_at,
-            error=t.error
+            error=t.error_message
         ) for t in tasks
     ]

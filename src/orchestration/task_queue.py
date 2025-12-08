@@ -5,7 +5,8 @@ Provides persistent task queue backed by SQLite.
 """
 from dataclasses import dataclass
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 from enum import Enum
 
 from sqlalchemy import create_engine
@@ -87,7 +88,7 @@ class TaskQueue:
                 target=target,
                 state=TaskState.PENDING.value,
                 priority=priority,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             session.add(record)
             session.commit()
@@ -116,7 +117,7 @@ class TaskQueue:
             
             # Mark as in progress
             record.state = TaskState.IN_PROGRESS.value
-            record.started_at = datetime.utcnow()
+            record.started_at = datetime.now(timezone.utc)
             session.commit()
             session.refresh(record)
             
@@ -143,7 +144,7 @@ class TaskQueue:
             if error:
                 record.error_message = error
             if state in (TaskState.COMPLETED, TaskState.FAILED):
-                record.completed_at = datetime.utcnow()
+                record.completed_at = datetime.now(timezone.utc)
             if state == TaskState.FAILED:
                 record.retry_count += 1
             
@@ -173,7 +174,7 @@ class TaskQueue:
         """
         session = self.Session()
         try:
-            cutoff = datetime.utcnow() - timedelta(hours=max_age_hours)
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
             stale = (
                 session.query(TaskRecord)
                 .filter(
@@ -187,7 +188,7 @@ class TaskQueue:
             for record in stale:
                 record.state = TaskState.FAILED.value
                 record.error_message = f"Stale task (started > {max_age_hours}h ago)"
-                record.completed_at = datetime.utcnow()
+                record.completed_at = datetime.now(timezone.utc)
                 count += 1
             
             session.commit()

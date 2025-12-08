@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
 from src.storage.silver import SilverStorage
 from loguru import logger
 import sys
@@ -15,7 +16,7 @@ def test_labels():
         "source": "manual_test",
         "type": "game",
         "external_id": ext_id,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         "status": "Scheduled",
         "name": "Labeled Game",
         "labels": {"domain": "sports", "league": "nba"},

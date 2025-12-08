@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 class ParsingResult:
     """
@@ -22,7 +23,7 @@ class ParsingResult:
         self.type = type
         self.external_id = external_id
         self.data = data
-        self.timestamp = timestamp or datetime.utcnow()
+        self.timestamp = timestamp or datetime.now(timezone.utc)
         self.status = status
         self.name = name
         self.labels = labels or {}

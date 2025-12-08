@@ -10,3 +10,6 @@ ollama
 python-dotenv
 fastapi
 uvicorn[standard]
+pytest
+pytest-asyncio
+beautifulsoup4

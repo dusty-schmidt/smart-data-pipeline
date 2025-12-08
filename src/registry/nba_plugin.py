@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
+
 from src.processing.base import BaseParser, ParsingResult
 from loguru import logger
 
@@ -42,7 +43,7 @@ class NBAScoreboardParser(BaseParser):
                     data=data_payload,
                     status=status_text,
                     name=name,
-                    timestamp=datetime.utcnow(), # Ideally parse gameTimeUTC
+                    timestamp=datetime.now(timezone.utc), # Ideally parse gameTimeUTC
                     labels={
                         "league": "NBA",
                         "season": "2024-25", # Could be dynamic

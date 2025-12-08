@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
 from sqlalchemy import Column, Integer, String, JSON, DateTime, ForeignKey, UniqueConstraint, Boolean, Text
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -18,7 +19,7 @@ class TaskRecord(Base):
     target = Column(String, index=True)         # URL or source_name
     state = Column(String, index=True, default='PENDING')  # PENDING, IN_PROGRESS, COMPLETED, FAILED
     priority = Column(Integer, default=5)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     error_message = Column(Text, nullable=True)
@@ -57,7 +58,7 @@ class FixHistoryRecord(Base):
     root_cause = Column(Text, nullable=True)
     patch_applied = Column(Text, nullable=True)  # Code diff or description
     success = Column(Boolean)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 # =============================================================================
@@ -69,7 +70,7 @@ class BronzeLog(Base):
     
     id = Column(Integer, primary_key=True)
     source = Column(String, index=True)
-    ingested_at = Column(DateTime, default=datetime.utcnow)
+    ingested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     version = Column(String, default="1.0")
     payload = Column(JSON)
     
@@ -106,4 +107,4 @@ class SilverEntity(Base):
     # Domain Specifics (The content)
     data = Column(JSON) # Structured, cleaned data (e.g. scores, teams, prices)
 
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

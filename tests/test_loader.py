@@ -35,5 +35,5 @@ def test_dynamic_loading():
     
     logger.success("Verification Passed: Dynamic Loading functional.")
 
-if __name__ == "__main__":
-    test_dynamic_loading()
+    logger.success("Verification Passed: Dynamic Loading functional.")
+

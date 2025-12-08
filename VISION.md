@@ -93,7 +93,7 @@ Full implementation in `src/orchestration/`:
 - [x] Zero-touch: URL → working scraper (no manual steps)
 - [x] Persistent: Survives restart
 - [ ] Self-healing: 80%+ auto-fix rate (needs real-world testing)
-- [ ] Observable: Dashboard shows health (Phase 5)
+- [x] Observable: Dashboard shows health (Phase 5)
 
 ---
 
